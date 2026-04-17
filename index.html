@@ -26,7 +26,29 @@
             padding:24px;
             min-height:100vh;
         }
-        .wrap{max-width:1200px;margin:0 auto}
+        .wrap{max-width:1200px;margin:0 auto;position:relative}
+        
+        .blackjack-btn{
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            background: linear-gradient(135deg, #ef4444, #f97316);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+            transition: all 0.2s ease;
+            z-index: 1000;
+        }
+        .blackjack-btn:hover{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
+        }
+        
         .title-card{
             background: linear-gradient(90deg, rgba(124,58,237,0.95), rgba(6,182,212,0.95));
             padding:18px 22px;border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.6);color:white;margin-bottom:18px;
@@ -63,6 +85,8 @@
     </style>
 </head>
 <body>
+    <button class="blackjack-btn" onclick="window.location.href='blackjack.html'">🎰 Blackjack</button>
+    
     <div class="wrap">
         <div class="title-card">
             <h1>Enzimkinetika — Michaelis–Menten (Interaktív demonstráció)</h1>
@@ -152,19 +176,17 @@
     </div>
 
     <script>
-        // Utilities
+        // ...existing code...
         function mmVelocity(Vmax, Km, S){
             return (Vmax * S) / (Km + S);
         }
         function randomNormal(){
-            // Box-Muller transform
             let u = 0, v = 0;
             while(u === 0) u = Math.random();
             while(v === 0) v = Math.random();
             return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
         }
 
-        // DOM refs
         const vmaxEl = document.getElementById('vmax');
         const kmEl = document.getElementById('km');
         const smaxEl = document.getElementById('smax');
@@ -187,11 +209,9 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const resetBtn = document.getElementById('resetBtn');
 
-        // State
         let showPoints = false;
         let fitted = false;
 
-        // Chart
         const ctx = document.getElementById('kineticsChart').getContext('2d');
         let chart = null;
 
@@ -199,7 +219,6 @@
             const s = [];
             for(let i=0;i<nPoints;i++){
                 const t = i / Math.max(1, nPoints-1);
-                // log-spaced from 0.5 to Smax for better low-S resolution
                 const val = Math.pow(10, Math.log10(0.5) + t*(Math.log10(Smax) - Math.log10(0.5)));
                 s.push(val);
             }
@@ -216,7 +235,6 @@
         }
 
         function fitLineweaverBurk(points){
-            // 1/v = (Km/Vmax)*(1/[S]) + 1/Vmax  => linear fit on (1/[S], 1/v)
             const xs = [], ys = [];
             for(const p of points){
                 if(p.x <= 0 || p.y <= 0) continue;
@@ -249,7 +267,6 @@
             const nPoints = parseInt(pointsEl.value, 10);
             const noisePct = parseFloat(noiseEl.value);
 
-            // Update labels
             vmaxValue.textContent = Vmax;
             kmValue.textContent = Km;
             smaxValue.textContent = Smax;
@@ -261,10 +278,8 @@
 
             const {trueCurve, points} = generateData(Vmax, Km, Smax, nPoints, noisePct);
 
-            // Prepare datasets
             const datasets = [];
 
-            // model curve (dense)
             const modelDense = [];
             const nSamples = 200;
             for(let i=0;i<nSamples;i++){
@@ -276,7 +291,7 @@
                 label: 'Model (telített görbe)',
                 data: modelDense,
                 showLine: true,
-                borderColor: '--unused', // replaced below (Chart accepts palette)
+                borderColor: 'rgba(124,58,237,0.95)',
                 borderWidth: 3,
                 pointRadius: 0,
                 order: 1,
@@ -295,7 +310,6 @@
                 });
             }
 
-            // optionally add fitted curve
             fittedVmax.textContent = '—';
             fittedKm.textContent = '—';
             if(fitted){
@@ -321,13 +335,9 @@
                     });
                     fittedVmax.textContent = Number(Vfit.toFixed(4));
                     fittedKm.textContent = Number(Kfit.toFixed(4));
-                } else {
-                    fittedVmax.textContent = '—';
-                    fittedKm.textContent = '—';
                 }
             }
 
-            // vertical Km marker (two points connected)
             datasets.push({
                 label: 'K_m',
                 data: [{x: Km, y:0}, {x: Km, y: Math.max(...modelDense.map(d=>d.y)) * 1.05}],
@@ -338,10 +348,8 @@
                 order: 4
             });
 
-            // destroy previous chart
             if(chart) chart.destroy();
 
-            // build chart with options
             chart = new Chart(ctx, {
                 type: 'scatter',
                 data: {datasets},
@@ -366,17 +374,6 @@
                             title: {display: true, text: 'Szubsztrátkoncentráció [S]'},
                             min: 0.5,
                             max: parseFloat(smaxEl.value),
-                            ticks: {
-                                callback: function(value){
-                                    // nicely format powers of ten and common ticks
-                                    const v = Number(value);
-                                    if(v >= 1000) return v.toExponential();
-                                    return v;
-                                }
-                            },
-                            afterBuildTicks: function(axis) {
-                                // nothing heavy here — keep default ticks
-                            }
                         },
                         y: {
                             title: {display: true, text: 'Reakciósebesség v'},
@@ -385,26 +382,8 @@
                     }
                 }
             });
-
-            // color adjustments after creation (Chart will map default colors; override datasets to consistent palette)
-            if(chart && chart.data && chart.data.datasets){
-                const pal = {
-                    model: 'rgba(124,58,237,0.95)',
-                    experimental: 'rgba(6,182,212,0.95)',
-                    fitted: 'rgba(245,158,11,0.95)',
-                    km: 'rgba(239,68,68,0.9)'
-                };
-                chart.data.datasets.forEach(ds=>{
-                    if(ds.label && ds.label.includes('Model')) ds.borderColor = pal.model, ds.backgroundColor = 'rgba(124,58,237,0.08)';
-                    if(ds.label && ds.label.includes('Kísérleti')) ds.borderColor = pal.experimental, ds.backgroundColor = pal.experimental;
-                    if(ds.label && ds.label.includes('Illesztett')) ds.borderColor = pal.fitted, ds.backgroundColor = 'rgba(245,158,11,0.06)';
-                    if(ds.label && ds.label === 'K_m') ds.borderColor = pal.km;
-                });
-                chart.update();
-            }
         }
 
-        // listeners
         [vmaxEl, kmEl, smaxEl, pointsEl, noiseEl].forEach(el=>{
             el.addEventListener('input', drawChart);
         });
@@ -444,7 +423,6 @@
             drawChart();
         });
 
-        // initialize
         drawChart();
     </script>
 </body>

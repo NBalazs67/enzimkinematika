@@ -3,1200 +3,523 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Enzimkinetika — Michaelis–Menten Interaktív</title>
-  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <title>Enzimkinetika — Michaelis–Menten</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      --ink:       #12110f;
-      --ink-mid:   #3a3530;
-      --ink-light: #7a7268;
-      --paper:     #faf8f3;
-      --paper-2:   #f2ede3;
-      --paper-3:   #e8e1d4;
-      --rule:      #d4cbbf;
-      --accent:    #1a5c3a;
-      --accent-2:  #8b2c12;
-      --accent-3:  #1e3a6e;
-      --gold:      #b07d2e;
-      --shadow:    rgba(18,17,15,0.12);
+      --bg0:      #060810;
+      --bg1:      #0b0e1a;
+      --bg2:      #0f1425;
+      --bg3:      #141930;
+      --glass:    rgba(255,255,255,0.04);
+      --glass-b:  rgba(255,255,255,0.08);
+      --glass-h:  rgba(255,255,255,0.07);
+      --border:   rgba(255,255,255,0.08);
+      --border-h: rgba(255,255,255,0.16);
+      --text:     #e8eaf2;
+      --text-2:   #9ba3c4;
+      --text-3:   #5a6285;
+      --green:    #00e5a0;
+      --green-glow: rgba(0,229,160,0.18);
+      --cyan:     #38d9f5;
+      --cyan-glow: rgba(56,217,245,0.15);
+      --amber:    #f5a623;
+      --amber-glow: rgba(245,166,35,0.15);
+      --rose:     #ff6b8a;
+      --rose-glow: rgba(255,107,138,0.15);
+      --violet:   #a78bfa;
+      --violet-glow: rgba(167,139,250,0.12);
+      --radius:   10px;
+      --radius-lg: 16px;
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg1); }
+    ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 3px; }
     body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--paper);
-      color: var(--ink);
+      font-family: 'Syne', sans-serif;
+      background: var(--bg0);
+      color: var(--text);
       min-height: 100vh;
-      position: relative;
       overflow-x: hidden;
     }
-
-    /* Subtle paper texture via pseudo-element */
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background-image:
-        repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(180,165,140,0.10) 27px, rgba(180,165,140,0.10) 28px),
-        repeating-linear-gradient(90deg, transparent, transparent 27px, rgba(180,165,140,0.04) 27px, rgba(180,165,140,0.04) 28px);
-      pointer-events: none;
-      z-index: 0;
+    .bg-orbs { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(80px); animation: orbFloat 18s ease-in-out infinite; }
+    .orb-1 { width:500px;height:500px;top:-120px;left:-80px;background:radial-gradient(circle,rgba(0,229,160,0.08) 0%,transparent 70%);animation-duration:20s; }
+    .orb-2 { width:400px;height:400px;top:40%;right:-100px;background:radial-gradient(circle,rgba(56,217,245,0.07) 0%,transparent 70%);animation-duration:25s;animation-delay:-8s; }
+    .orb-3 { width:350px;height:350px;bottom:-80px;left:30%;background:radial-gradient(circle,rgba(167,139,250,0.06) 0%,transparent 70%);animation-duration:22s;animation-delay:-14s; }
+    @keyframes orbFloat { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(30px,-20px) scale(1.05)} 66%{transform:translate(-20px,30px) scale(0.97)} }
+    .bg-grid {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px), linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px);
+      background-size: 40px 40px;
     }
+    .wrap { max-width:1320px; margin:0 auto; padding:28px 24px 56px; position:relative; z-index:1; }
 
-    /* Watermark formula */
-    body::after {
-      content: 'v = Vmax·[S] / (Km + [S])';
-      position: fixed;
-      bottom: 60px; right: -60px;
-      font-family: 'Source Serif 4', serif;
-      font-size: 1.4rem;
-      color: rgba(18,17,15,0.04);
-      transform: rotate(-25deg);
-      pointer-events: none;
-      z-index: 0;
-      white-space: nowrap;
-      letter-spacing: 0.04em;
-    }
-
-    .wrap {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 32px 24px 48px;
-      position: relative;
-      z-index: 1;
-    }
-
-    /* ── HEADER ── */
+    /* HEADER */
     header {
-      border-bottom: 2px solid var(--ink);
-      padding-bottom: 16px;
-      margin-bottom: 28px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      flex-wrap: wrap;
-      gap: 12px;
+      display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;
+      margin-bottom:32px; padding-bottom:24px; border-bottom:1px solid var(--border); position:relative;
     }
-    .header-left {}
-    .journal-label {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--ink-light);
-      margin-bottom: 4px;
-    }
-    h1 {
-      font-family: 'Source Serif 4', serif;
-      font-size: clamp(1.5rem, 3vw, 2.2rem);
-      font-weight: 700;
-      color: var(--ink);
-      line-height: 1.15;
-    }
-    h1 em {
-      font-style: italic;
-      color: var(--accent);
-    }
-    .header-meta {
-      font-size: 0.8rem;
-      color: var(--ink-light);
-      font-family: 'JetBrains Mono', monospace;
-      text-align: right;
-      line-height: 1.6;
-    }
+    header::after { content:''; position:absolute; bottom:-1px; left:0; width:120px; height:1px; background:linear-gradient(90deg,var(--green),transparent); }
+    .header-eyebrow { font-size:0.65rem; font-weight:600; letter-spacing:0.22em; text-transform:uppercase; color:var(--green); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+    .header-eyebrow::before { content:''; display:inline-block; width:20px; height:1px; background:var(--green); }
+    h1 { font-family:'Syne',sans-serif; font-size:clamp(1.6rem,3.5vw,2.5rem); font-weight:800; line-height:1.1; color:var(--text); letter-spacing:-0.02em; }
+    h1 .italic-part { font-family:'Lora',serif; font-style:italic; font-weight:600; color:var(--green); }
+    .header-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+    .mode-pill { background:var(--glass); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--cyan); letter-spacing:0.05em; }
+    .reaction-eq { font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--text-3); letter-spacing:0.06em; }
 
-    /* ── LAYOUT ── */
-    .layout {
-      display: grid;
-      grid-template-columns: 1fr 360px;
-      gap: 24px;
-    }
-    @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
+    /* LAYOUT */
+    .layout { display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start; }
+    @media(max-width:1050px){.layout{grid-template-columns:1fr}}
 
-    /* ── CARDS ── */
+    /* CARD */
     .card {
-      background: #fff;
-      border: 1px solid var(--rule);
-      border-radius: 4px;
-      padding: 20px;
-      box-shadow: 0 2px 8px var(--shadow), 0 0 0 1px rgba(18,17,15,0.03);
+      background:var(--glass); border:1px solid var(--border); border-radius:var(--radius-lg);
+      padding:20px; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+      position:relative; overflow:hidden; transition:border-color 0.2s;
     }
-    .card-title {
-      font-family: 'Source Serif 4', serif;
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--ink);
-      border-bottom: 1px solid var(--rule);
-      padding-bottom: 8px;
-      margin-bottom: 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .card-title .dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--accent);
-      flex-shrink: 0;
-    }
-    .card-title .dot.red { background: var(--accent-2); }
-    .card-title .dot.blue { background: var(--accent-3); }
-    .card-title .dot.gold { background: var(--gold); }
+    .card:hover { border-color:var(--border-h); }
+    .card::before { content:''; position:absolute; top:0;left:0;right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.10),transparent); pointer-events:none; }
+    .card[data-accent="green"]::after  { content:''; position:absolute; top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--green),transparent); }
+    .card[data-accent="cyan"]::after   { content:''; position:absolute; top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cyan),transparent); }
+    .card[data-accent="amber"]::after  { content:''; position:absolute; top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--amber),transparent); }
+    .card[data-accent="rose"]::after   { content:''; position:absolute; top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--rose),transparent); }
+    .card[data-accent="violet"]::after { content:''; position:absolute; top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--violet),transparent); }
+    .card-title { font-size:0.68rem; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-3); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+    .card-title-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+    .dot-green  { background:var(--green);  box-shadow:0 0 6px var(--green); }
+    .dot-cyan   { background:var(--cyan);   box-shadow:0 0 6px var(--cyan); }
+    .dot-amber  { background:var(--amber);  box-shadow:0 0 6px var(--amber); }
+    .dot-rose   { background:var(--rose);   box-shadow:0 0 6px var(--rose); }
+    .dot-violet { background:var(--violet); box-shadow:0 0 6px var(--violet); }
 
-    /* ── CHART ── */
-    #chartWrap {
-      position: relative;
-      height: 420px;
-      margin-bottom: 16px;
-    }
-    canvas { width: 100% !important; height: 100% !important; }
+    /* CHART */
+    #chartWrap { position:relative; height:400px; border-radius:var(--radius); overflow:hidden; background:rgba(0,0,0,0.3); border:1px solid var(--border); margin-bottom:18px; }
+    canvas { width:100%!important; height:100%!important; }
 
-    /* ── MODE TABS ── */
-    .tabs {
-      display: flex;
-      gap: 0;
-      border: 1px solid var(--rule);
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 14px;
-    }
-    .tab {
-      flex: 1;
-      padding: 7px 10px;
-      border: none;
-      background: var(--paper-2);
-      color: var(--ink-mid);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.78rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-      border-right: 1px solid var(--rule);
-      text-align: center;
-    }
-    .tab:last-child { border-right: none; }
-    .tab.active {
-      background: var(--ink);
-      color: var(--paper);
-      font-weight: 600;
-    }
+    /* TABS */
+    .tabs { display:flex; gap:4px; margin-bottom:16px; background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:var(--radius); padding:4px; }
+    .tab { flex:1; padding:8px 10px; border:none; background:transparent; color:var(--text-3); font-family:'Syne',sans-serif; font-size:0.75rem; font-weight:600; cursor:pointer; border-radius:7px; transition:all 0.18s; letter-spacing:0.02em; }
+    .tab:hover { color:var(--text-2); background:var(--glass-h); }
+    .tab.active { background:var(--green); color:#060810; box-shadow:0 0 18px rgba(0,229,160,0.35); }
 
-    /* ── ACTIONS ── */
-    .actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 14px;
-    }
-    .btn {
-      padding: 7px 13px;
-      border-radius: 3px;
-      border: 1px solid var(--rule);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.12s;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .btn-primary {
-      background: var(--ink);
-      color: var(--paper);
-      border-color: var(--ink);
-    }
-    .btn-primary:hover { background: var(--ink-mid); }
-    .btn-outline {
-      background: transparent;
-      color: var(--ink);
-    }
-    .btn-outline:hover { background: var(--paper-2); }
-    .btn-active {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
-    }
-    .btn-active-red {
-      background: var(--accent-2);
-      color: white;
-      border-color: var(--accent-2);
-    }
+    /* SUB CONTROLS */
+    .sub-control-panel { background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; margin-bottom:14px; }
 
-    /* ── STATS BAR ── */
-    .stats-bar {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-      gap: 8px;
-      margin-top: 14px;
-    }
-    .stat {
-      background: var(--paper);
-      border: 1px solid var(--rule);
-      border-radius: 3px;
-      padding: 10px 12px;
-      text-align: center;
-    }
-    .stat-label {
-      font-size: 0.68rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--ink-light);
-      margin-bottom: 4px;
-    }
-    .stat-val {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--ink);
-    }
-    .stat-val.good { color: var(--accent); }
-    .stat-val.warn { color: var(--accent-2); }
-    .stat-val.info { color: var(--accent-3); }
+    /* ACTIONS */
+    .actions { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+    .btn { padding:8px 14px; border-radius:8px; border:1px solid var(--border); font-family:'Syne',sans-serif; font-size:0.75rem; font-weight:600; cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; gap:6px; letter-spacing:0.02em; }
+    .btn-outline { background:var(--glass); color:var(--text-2); }
+    .btn-outline:hover { background:var(--glass-h); color:var(--text); border-color:var(--border-h); }
+    .btn-primary { background:rgba(255,255,255,0.08); color:var(--text); border-color:rgba(255,255,255,0.15); }
+    .btn-primary:hover { background:rgba(255,255,255,0.12); }
+    .btn-active { background:rgba(0,229,160,0.15); color:var(--green); border-color:rgba(0,229,160,0.4); box-shadow:0 0 12px rgba(0,229,160,0.12); }
+    .btn-active:hover { background:rgba(0,229,160,0.22); }
+    .btn-active-red { background:rgba(255,107,138,0.15); color:var(--rose); border-color:rgba(255,107,138,0.4); box-shadow:0 0 12px rgba(255,107,138,0.12); }
+    .btn-active-red:hover { background:rgba(255,107,138,0.22); }
 
-    /* ── SIDEBAR CONTROLS ── */
-    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+    /* STATS */
+    .stats-bar { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; }
+    @media(max-width:900px){.stats-bar{grid-template-columns:repeat(3,1fr)}}
+    .stat { background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:var(--radius); padding:12px 10px; text-align:center; transition:border-color 0.2s; }
+    .stat:hover { border-color:var(--border-h); }
+    .stat-label { font-family:'JetBrains Mono',monospace; font-size:0.6rem; font-weight:400; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-3); margin-bottom:5px; }
+    .stat-val { font-family:'JetBrains Mono',monospace; font-size:1.05rem; font-weight:600; color:var(--text); line-height:1; }
+    .stat-val.good { color:var(--green); text-shadow:0 0 12px var(--green-glow); }
+    .stat-val.info { color:var(--cyan);  text-shadow:0 0 12px var(--cyan-glow); }
+    .stat-val.warn { color:var(--amber); text-shadow:0 0 12px var(--amber-glow); }
 
-    .control-group {
-      background: var(--paper);
-      border: 1px solid var(--rule);
-      border-radius: 3px;
-      padding: 12px 14px;
-    }
-    .control-label {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 6px;
-    }
-    .control-name {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--ink);
-    }
-    .control-val {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--accent-3);
-    }
-    .control-hint {
-      font-size: 0.72rem;
-      color: var(--ink-light);
-      margin-top: 4px;
-      line-height: 1.4;
-    }
+    /* SIDEBAR */
+    .sidebar { display:flex; flex-direction:column; gap:14px; }
+    .controls-stack { display:flex; flex-direction:column; gap:10px; }
+    .control-row { background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:var(--radius); padding:12px 14px; transition:border-color 0.15s; }
+    .control-row:hover { border-color:var(--border-h); }
+    .control-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
+    .control-name { font-size:0.78rem; font-weight:600; color:var(--text-2); }
+    .control-val { font-family:'JetBrains Mono',monospace; font-size:0.82rem; font-weight:600; color:var(--cyan); min-width:40px; text-align:right; }
+    .control-hint { font-size:0.68rem; color:var(--text-3); margin-top:6px; line-height:1.45; }
+
     input[type=range] {
-      width: 100%;
-      accent-color: var(--accent-3);
-      cursor: pointer;
+      width:100%; height:3px; -webkit-appearance:none;
+      background: linear-gradient(90deg,var(--cyan),var(--cyan)) no-repeat var(--border);
+      background-size:0% 100%; border-radius:2px; cursor:pointer; outline:none;
     }
-    select {
-      width: 100%;
-      padding: 6px 10px;
-      border: 1px solid var(--rule);
-      border-radius: 3px;
-      background: white;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.82rem;
-      color: var(--ink);
-      cursor: pointer;
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--cyan);
+      box-shadow:0 0 8px var(--cyan-glow),0 0 0 3px rgba(56,217,245,0.15); cursor:pointer; transition:box-shadow 0.15s;
     }
+    input[type=range]:hover::-webkit-slider-thumb { box-shadow:0 0 14px rgba(56,217,245,0.5),0 0 0 5px rgba(56,217,245,0.12); }
 
-    /* ── EQUATION PANEL ── */
-    .eq-box {
-      background: var(--paper-2);
-      border: 1px solid var(--rule);
-      border-left: 3px solid var(--accent-3);
-      border-radius: 0 3px 3px 0;
-      padding: 10px 14px;
-      font-family: 'Source Serif 4', serif;
-      font-style: italic;
-      font-size: 0.95rem;
-      color: var(--ink);
-      line-height: 1.6;
-    }
-    .eq-box .eq-line {
-      font-style: normal;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.82rem;
-      margin-top: 4px;
-      color: var(--accent-3);
-    }
+    select { width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:var(--radius); background:rgba(0,0,0,0.3); color:var(--text); font-family:'Syne',sans-serif; font-size:0.78rem; cursor:pointer; outline:none; transition:border-color 0.15s; }
+    select:hover,select:focus { border-color:var(--border-h); }
+    select option { background:#0f1425; }
 
-    /* ── INHIBITION BADGE ── */
-    .inhibition-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 2px;
-      font-size: 0.68rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
-    .badge-comp { background: rgba(139,44,18,0.12); color: var(--accent-2); }
-    .badge-uncomp { background: rgba(30,58,110,0.12); color: var(--accent-3); }
-    .badge-none { background: rgba(26,92,58,0.12); color: var(--accent); }
+    /* FIT METHOD PILLS */
+    .method-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+    .method-btn { padding:5px 12px; border:1px solid var(--border); border-radius:20px; font-family:'JetBrains Mono',monospace; font-size:0.68rem; font-weight:500; cursor:pointer; background:transparent; color:var(--text-3); letter-spacing:0.04em; transition:all 0.15s; }
+    .method-btn:hover { color:var(--text-2); border-color:var(--border-h); }
+    .method-btn.active { background:rgba(167,139,250,0.18); color:var(--violet); border-color:rgba(167,139,250,0.4); box-shadow:0 0 10px rgba(167,139,250,0.1); }
 
-    /* ── ANNOTATION PANEL ── */
-    .annotation-card {
-      font-size: 0.78rem;
-      line-height: 1.6;
-      color: var(--ink-mid);
-    }
-    .annotation-card h4 {
-      font-family: 'Source Serif 4', serif;
-      font-size: 0.9rem;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: var(--ink);
-    }
-    .annotation-card p { margin-bottom: 6px; }
-    .annotation-card .highlight {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
-      background: var(--paper-2);
-      border: 1px solid var(--rule);
-      border-radius: 2px;
-      padding: 2px 6px;
-      color: var(--ink);
-    }
-    .annotation-card table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 8px;
-      font-size: 0.75rem;
-    }
-    .annotation-card td, .annotation-card th {
-      padding: 5px 8px;
-      border: 1px solid var(--rule);
-      text-align: left;
-    }
-    .annotation-card th {
-      background: var(--paper-2);
-      font-weight: 600;
-      font-family: 'DM Sans', sans-serif;
-    }
+    /* EQ BOX */
+    .eq-box { background:rgba(0,0,0,0.3); border:1px solid var(--border); border-left:2px solid var(--violet); border-radius:0 var(--radius) var(--radius) 0; padding:12px 16px; font-family:'Lora',serif; font-style:italic; font-size:0.88rem; color:var(--text-2); line-height:1.7; }
+    .eq-line { font-style:normal; font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--violet); margin-top:4px; display:block; letter-spacing:0.04em; }
 
-    /* ── WARNING ── */
-    .warning-box {
-      background: rgba(176,125,46,0.10);
-      border: 1px solid rgba(176,125,46,0.35);
-      border-left: 3px solid var(--gold);
-      border-radius: 0 3px 3px 0;
-      padding: 8px 12px;
-      font-size: 0.75rem;
-      color: var(--ink-mid);
-      line-height: 1.5;
-      margin-top: 10px;
-    }
-    .warning-box strong { color: var(--gold); }
+    /* WARNING */
+    .warning-box { background:rgba(245,166,35,0.08); border:1px solid rgba(245,166,35,0.25); border-left:2px solid var(--amber); border-radius:0 var(--radius) var(--radius) 0; padding:10px 14px; font-size:0.72rem; color:var(--text-2); line-height:1.5; margin-top:10px; }
+    .warning-box strong { color:var(--amber); }
+    .fit-hint { font-size:0.72rem; color:var(--text-3); line-height:1.5; }
+    .fit-hint strong { color:var(--text-2); }
 
-    /* ── FOOTER ── */
-    footer {
-      margin-top: 32px;
-      padding-top: 16px;
-      border-top: 1px solid var(--rule);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      font-size: 0.75rem;
-      color: var(--ink-light);
-    }
-    footer a { color: var(--accent-3); text-decoration: none; font-weight: 600; }
+    /* ANNOTATION */
+    .annotation-card-inner { font-size:0.76rem; line-height:1.65; color:var(--text-2); }
+    .annotation-card-inner h4 { font-family:'Lora',serif; font-size:0.95rem; font-weight:600; color:var(--text); margin-bottom:10px; }
+    .annotation-card-inner p { margin-bottom:8px; }
+    .mono-tag { font-family:'JetBrains Mono',monospace; font-size:0.7rem; background:rgba(167,139,250,0.12); border:1px solid rgba(167,139,250,0.25); border-radius:4px; padding:1px 6px; color:var(--violet); }
+    .annotation-card-inner table { width:100%; border-collapse:collapse; margin-top:10px; font-size:0.72rem; }
+    .annotation-card-inner td,.annotation-card-inner th { padding:6px 10px; border:1px solid var(--border); text-align:left; }
+    .annotation-card-inner th { background:rgba(0,0,0,0.3); font-weight:600; color:var(--text-2); font-family:'Syne',sans-serif; font-size:0.68rem; letter-spacing:0.06em; text-transform:uppercase; }
+    .annotation-card-inner tr:hover td { background:rgba(255,255,255,0.02); }
 
-    /* ── FIT METHOD SELECTOR ── */
-    .method-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 10px;
-    }
-    .method-btn {
-      padding: 4px 10px;
-      border: 1px solid var(--rule);
-      border-radius: 2px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      cursor: pointer;
-      background: var(--paper-2);
-      color: var(--ink-mid);
-      letter-spacing: 0.04em;
-      transition: all 0.12s;
-    }
-    .method-btn.active {
-      background: var(--accent-3);
-      color: white;
-      border-color: var(--accent-3);
-    }
+    /* FOOTER */
+    footer { margin-top:36px; padding-top:20px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-size:0.72rem; color:var(--text-3); font-family:'JetBrains Mono',monospace; }
+    footer a { color:var(--cyan); text-decoration:none; }
+    footer a:hover { color:var(--text); }
+
+    /* PAGE LOAD */
+    @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+    .anim-1 { animation:fadeUp 0.5s ease both; }
+    .anim-2 { animation:fadeUp 0.5s 0.08s ease both; }
+    .anim-3 { animation:fadeUp 0.5s 0.16s ease both; }
+    .anim-4 { animation:fadeUp 0.5s 0.24s ease both; }
   </style>
 </head>
 <body>
-<div class="wrap">
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <div class="bg-grid"></div>
 
-  <!-- HEADER -->
-  <header>
-    <div class="header-left">
-      <div class="journal-label">Biokémiai Számítási Eszköz · v2.0</div>
-      <h1>Enzimkinetika — <em>Michaelis–Menten</em> Interaktív</h1>
-    </div>
-    <div class="header-meta">
-      Szubsztrát: [S] · Sebesség: v<br>
-      E + S ⇌ ES → E + P<br>
-      <span id="kineticMode">Mód: Alap MM</span>
-    </div>
-  </header>
+  <div class="wrap">
+    <header class="anim-1">
+      <div>
+        <div class="header-eyebrow">Biokémiai Számítási Eszköz · v2.0</div>
+        <h1>Enzimkinetika — <span class="italic-part">Michaelis–Menten</span></h1>
+      </div>
+      <div class="header-right">
+        <div class="mode-pill" id="kineticMode">Mód: Michaelis–Menten</div>
+        <div class="reaction-eq">E + S ⇌ ES → E + P</div>
+      </div>
+    </header>
 
-  <div class="layout">
+    <div class="layout">
+      <div style="display:flex;flex-direction:column;gap:16px;">
 
-    <!-- LEFT: CHART COLUMN -->
-    <div style="display:flex;flex-direction:column;gap:16px;">
+        <!-- CHART CARD -->
+        <div class="card anim-2" data-accent="green">
+          <div class="card-title"><span class="card-title-dot dot-green"></span>Reakciósebesség görbe</div>
 
-      <!-- CHART CARD -->
-      <div class="card">
-        <div class="card-title"><span class="dot"></span>Reakciósebesség görbe</div>
-
-        <!-- Mode tabs -->
-        <div class="tabs">
-          <button class="tab active" data-mode="mm">Michaelis–Menten</button>
-          <button class="tab" data-mode="hill">Hill (kooperatív)</button>
-          <button class="tab" data-mode="inhibition">Inhibíció</button>
-        </div>
-
-        <!-- Hill / Inhibition sub-controls shown contextually -->
-        <div id="hillControls" style="display:none;margin-bottom:10px;">
-          <div class="control-group" style="padding:8px 12px;">
-            <div class="control-label">
-              <span class="control-name">Hill-koefficiens (n)</span>
-              <span class="control-val" id="hillNVal">2</span>
-            </div>
-            <input type="range" id="hillN" min="0.5" max="4" step="0.1" value="2">
-            <div class="control-hint">n=1: hiperbolikus; n&gt;1: pozitív kooperativitás (hemoglobin típus)</div>
+          <div class="tabs">
+            <button class="tab active" data-mode="mm">Michaelis–Menten</button>
+            <button class="tab" data-mode="hill">Hill · Kooperatív</button>
+            <button class="tab" data-mode="inhibition">Inhibíció</button>
           </div>
-        </div>
-        <div id="inhibControls" style="display:none;margin-bottom:10px;display:none;">
-          <div class="control-group" style="padding:8px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;">
-            <div style="flex:1;min-width:160px;">
-              <div class="control-label">
-                <span class="control-name">Inhibítor típusa</span>
+
+          <div id="hillControls" style="display:none;">
+            <div class="sub-control-panel">
+              <div class="control-header">
+                <span class="control-name">Hill-koefficiens (n)</span>
+                <span class="control-val" id="hillNVal">2</span>
               </div>
-              <select id="inhibType">
-                <option value="competitive">Kompetitív</option>
-                <option value="noncompetitive">Nem-kompetitív</option>
-                <option value="uncompetitive">Akompetiív</option>
-              </select>
+              <input type="range" id="hillN" min="0.5" max="4" step="0.1" value="2">
+              <div class="control-hint">n = 1: hiperbolikus (MM) · n &gt; 1: pozitív kooperativitás · n &lt; 1: negatív</div>
             </div>
-            <div style="flex:1;min-width:160px;">
-              <div class="control-label">
-                <span class="control-name">[I] / Ki</span>
-                <span class="control-val" id="inhibRatioVal">1.0</span>
+          </div>
+
+          <div id="inhibControls" style="display:none;">
+            <div class="sub-control-panel" style="display:flex;gap:14px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:140px;">
+                <div class="control-header"><span class="control-name">Inhibítor típusa</span></div>
+                <select id="inhibType">
+                  <option value="competitive">Kompetitív</option>
+                  <option value="noncompetitive">Nem-kompetitív</option>
+                  <option value="uncompetitive">Akompetiív</option>
+                </select>
               </div>
-              <input type="range" id="inhibRatio" min="0" max="10" step="0.1" value="1">
-              <div class="control-hint">Inhibítor-koncentráció / gátlási állandó aránya</div>
+              <div style="flex:1;min-width:140px;">
+                <div class="control-header">
+                  <span class="control-name">[I] / Ki arány</span>
+                  <span class="control-val" id="inhibRatioVal">1.0</span>
+                </div>
+                <input type="range" id="inhibRatio" min="0" max="10" step="0.1" value="1">
+                <div class="control-hint">Inhibítor hatása a kinetikára</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="chartWrap"><canvas id="kineticsChart"></canvas></div>
+
+          <div class="actions">
+            <button id="togglePoints" class="btn btn-outline">⬤ Pontok: KI</button>
+            <button id="fitButton"    class="btn btn-outline">⌖ Illesztés: KI</button>
+            <button id="downloadBtn"  class="btn btn-outline">↓ PNG</button>
+            <button id="csvBtn"       class="btn btn-outline">↓ CSV</button>
+            <button id="resetBtn"     class="btn btn-primary">↺ Reset</button>
+          </div>
+
+          <div class="stats-bar" aria-live="polite">
+            <div class="stat"><div class="stat-label">Vmax beáll.</div><div class="stat-val good" id="displayVmax">50</div></div>
+            <div class="stat"><div class="stat-label">Km beáll.</div><div class="stat-val good" id="displayKm">10</div></div>
+            <div class="stat"><div class="stat-label">Vmax illesztett</div><div class="stat-val info" id="fittedVmax">—</div></div>
+            <div class="stat"><div class="stat-label">Km illesztett</div><div class="stat-val info" id="fittedKm">—</div></div>
+            <div class="stat"><div class="stat-label">R²</div><div class="stat-val" id="statR2">—</div></div>
+            <div class="stat"><div class="stat-label">RMSE</div><div class="stat-val" id="statRMSE">—</div></div>
+          </div>
+        </div>
+
+        <!-- ANNOTATION -->
+        <div class="card anim-3" data-accent="cyan">
+          <div class="card-title"><span class="card-title-dot dot-cyan"></span>Tudományos háttér</div>
+          <div class="annotation-card-inner" id="annotationText"></div>
+        </div>
+      </div>
+
+      <!-- SIDEBAR -->
+      <aside class="sidebar anim-4">
+
+        <div class="card" data-accent="green">
+          <div class="card-title"><span class="card-title-dot dot-green"></span>Kinetikai paraméterek</div>
+          <div class="controls-stack">
+            <div class="control-row">
+              <div class="control-header"><span class="control-name">V<sub>max</sub></span><span class="control-val" id="vmaxValue">50</span></div>
+              <input type="range" id="vmax" min="1" max="200" value="50" step="1">
+              <div class="control-hint">Maximális reakciósebesség — telítés esetén elérhető érték.</div>
+            </div>
+            <div class="control-row">
+              <div class="control-header"><span class="control-name">K<sub>m</sub></span><span class="control-val" id="kmValue">10</span></div>
+              <input type="range" id="km" min="0.5" max="100" value="10" step="0.5">
+              <div class="control-hint">Michaelis-állandó — a féltelítési szubsztrátkoncentráció.</div>
             </div>
           </div>
         </div>
 
-        <div id="chartWrap">
-          <canvas id="kineticsChart"></canvas>
-        </div>
-
-        <!-- Actions -->
-        <div class="actions">
-          <button id="togglePoints" class="btn btn-outline">⬤ Kísérleti pontok: KI</button>
-          <button id="fitButton"    class="btn btn-outline">⌖ Illesztés: KI</button>
-          <button id="downloadBtn"  class="btn btn-outline">↓ PNG letöltés</button>
-          <button id="csvBtn"       class="btn btn-outline">↓ CSV export</button>
-          <button id="resetBtn"     class="btn btn-primary">↺ Visszaállít</button>
-        </div>
-
-        <!-- Stats bar -->
-        <div class="stats-bar" aria-live="polite">
-          <div class="stat">
-            <div class="stat-label">Vmax (beáll.)</div>
-            <div class="stat-val good" id="displayVmax">50</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Km (beáll.)</div>
-            <div class="stat-val good" id="displayKm">10</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Vmax (illesztett)</div>
-            <div class="stat-val info" id="fittedVmax">—</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Km (illesztett)</div>
-            <div class="stat-val info" id="fittedKm">—</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">R²</div>
-            <div class="stat-val" id="statR2">—</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">RMSE</div>
-            <div class="stat-val" id="statRMSE">—</div>
+        <div class="card" data-accent="amber">
+          <div class="card-title"><span class="card-title-dot dot-amber"></span>Kísérlet beállítások</div>
+          <div class="controls-stack">
+            <div class="control-row">
+              <div class="control-header"><span class="control-name">Mérési pontok (n)</span><span class="control-val" id="pointsValue">12</span></div>
+              <input type="range" id="points" min="4" max="40" value="12" step="1">
+              <div class="control-hint">Szimulált kísérleti adatpontok száma.</div>
+            </div>
+            <div class="control-row">
+              <div class="control-header"><span class="control-name">Zaj mértéke (%)</span><span class="control-val" id="noiseValue">5</span></div>
+              <input type="range" id="noise" min="0" max="50" value="5" step="1">
+              <div class="control-hint">Gauss-féle mérési hiba szimulációja (σ = zaj% × v).</div>
+            </div>
+            <div class="control-row">
+              <div class="control-header"><span class="control-name">[S]<sub>max</sub></span><span class="control-val" id="smaxValue">100</span></div>
+              <input type="range" id="smax" min="5" max="500" value="100" step="5">
+              <div class="control-hint">Logaritmikus x-tengely felső határa.</div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- ANNOTATION PANEL -->
-      <div class="card annotation-card">
-        <div class="card-title"><span class="dot blue"></span>Tudományos magyarázat</div>
-        <div id="annotationText">
-          <h4>Michaelis–Menten kinetika</h4>
-          <p>A Michaelis–Menten modell az enzimkatalizált reakciók sebességét írja le a szubsztrátkoncentráció függvényében. A hiperbolikus görbe két alapparaméterrel jellemezhető.</p>
-          <table>
-            <tr><th>Paraméter</th><th>Jelentés</th><th>Egység</th></tr>
-            <tr><td><span class="highlight">Vmax</span></td><td>Maximális sebesség (telítés esetén)</td><td>µmol/min</td></tr>
-            <tr><td><span class="highlight">Km</span></td><td>Szubsztrátkonc., ahol v = Vmax/2</td><td>mM / µM</td></tr>
-            <tr><td><span class="highlight">kcat</span></td><td>Katalitikus fordulatok száma</td><td>s⁻¹</td></tr>
-            <tr><td><span class="highlight">kcat/Km</span></td><td>Katalitikus hatékonyság</td><td>M⁻¹s⁻¹</td></tr>
-          </table>
-          <p style="margin-top:8px">A <span class="highlight">Km</span> az enzim szubsztrát-affinitásának mértéke – kis Km = nagy affinitás. A <span class="highlight">Vmax</span> az összes enzimmolekula teljes foglaltságát jelenti.</p>
+        <div class="card" data-accent="rose">
+          <div class="card-title"><span class="card-title-dot dot-rose"></span>Illesztési módszer</div>
+          <div class="method-row">
+            <button class="method-btn active" data-fit="nls">NLS</button>
+            <button class="method-btn" data-fit="lb">Lineweaver–Burk</button>
+            <button class="method-btn" data-fit="eh">Eadie–Hofstee</button>
+          </div>
+          <div class="fit-hint" id="fitMethodHint"><strong>Nemlineáris LS (NLS):</strong> Direkt illesztés az MM-egyenletbe. Torzítatlan — ajánlott módszer.</div>
+          <div class="warning-box" id="lbWarning" style="display:none;"><strong>⚠ Figyelmeztetés:</strong> A Lineweaver–Burk módszer torzított becsléseket ad zajjal terhelt adatoknál. Csak szemléltetésre ajánlott.</div>
         </div>
-      </div>
 
+        <div class="card" data-accent="violet">
+          <div class="card-title"><span class="card-title-dot dot-violet"></span>Egyenlet</div>
+          <div class="eq-box" id="equationBox">Michaelis–Menten:<br><span class="eq-line">v = (Vmax × [S]) / (Km + [S])</span></div>
+          <div style="margin-top:10px;font-size:0.7rem;color:var(--text-3);line-height:1.5;">Tipp: emeld a zajt 30%+ fölé, hogy lásd az illesztési módszerek eltérését.</div>
+        </div>
+
+      </aside>
     </div>
 
-    <!-- RIGHT: SIDEBAR -->
-    <aside class="sidebar">
-
-      <!-- Kinetic Parameters -->
-      <div class="card">
-        <div class="card-title"><span class="dot"></span>Kinetikai paraméterek</div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-
-          <div class="control-group">
-            <div class="control-label">
-              <span class="control-name">V<sub>max</sub></span>
-              <span class="control-val" id="vmaxValue">50</span>
-            </div>
-            <input type="range" id="vmax" min="1" max="200" value="50" step="1">
-            <div class="control-hint">Maximális reakciósebesség (tetsz. egység). Telítés esetén elérhető érték.</div>
-          </div>
-
-          <div class="control-group">
-            <div class="control-label">
-              <span class="control-name">K<sub>m</sub></span>
-              <span class="control-val" id="kmValue">10</span>
-            </div>
-            <input type="range" id="km" min="0.5" max="100" value="10" step="0.5">
-            <div class="control-hint">Michaelis-állandó. Kis K<sub>m</sub> = nagy szubsztrát-affinitás.</div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- Experiment Controls -->
-      <div class="card">
-        <div class="card-title"><span class="dot gold"></span>Kísérlet beállítások</div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-
-          <div class="control-group">
-            <div class="control-label">
-              <span class="control-name">Mérési pontok száma</span>
-              <span class="control-val" id="pointsValue">12</span>
-            </div>
-            <input type="range" id="points" min="4" max="40" value="12" step="1">
-            <div class="control-hint">Szimulált kísérleti adatpontok (n). Több pont = jobb illesztés.</div>
-          </div>
-
-          <div class="control-group">
-            <div class="control-label">
-              <span class="control-name">Zaj mértéke (%)</span>
-              <span class="control-val" id="noiseValue">5</span>
-            </div>
-            <input type="range" id="noise" min="0" max="50" value="5" step="1">
-            <div class="control-hint">Gauss-féle mérési hiba szimulációja. 0% = tökéletes mérés.</div>
-          </div>
-
-          <div class="control-group">
-            <div class="control-label">
-              <span class="control-name">[S]<sub>max</sub> (szubsztrát tartomány)</span>
-              <span class="control-val" id="smaxValue">100</span>
-            </div>
-            <input type="range" id="smax" min="5" max="500" value="100" step="5">
-            <div class="control-hint">Logaritmikus x-tengely felső határa.</div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- Fit method -->
-      <div class="card">
-        <div class="card-title"><span class="dot red"></span>Illesztési módszer</div>
-        <div class="method-row">
-          <button class="method-btn active" data-fit="nls">Nemlineáris LS</button>
-          <button class="method-btn" data-fit="lb">Lineweaver–Burk</button>
-          <button class="method-btn" data-fit="eh">Eadie–Hofstee</button>
-        </div>
-        <div id="fitMethodHint" class="control-hint">
-          <strong>Nemlineáris legkisebb négyzetek (NLS):</strong> Direkt illesztés az eredeti MM-egyenletbe. Torzítatlan becslés – ez az ajánlott módszer.
-        </div>
-        <div class="warning-box" id="lbWarning" style="display:none;">
-          <strong>⚠ Figyelmeztetés:</strong> A Lineweaver–Burk módszer torzított becsléseket ad zajjal terhelt adatokra. Csak szemléltetési célra ajánlott, ne használd tudományos becslésre.
-        </div>
-      </div>
-
-      <!-- Equations -->
-      <div class="card">
-        <div class="card-title"><span class="dot blue"></span>Egyenletek</div>
-        <div id="equationBox" class="eq-box">
-          Michaelis–Menten:<br>
-          <span class="eq-line">v = (Vmax × [S]) / (Km + [S])</span>
-        </div>
-        <div style="margin-top:8px;font-size:0.75rem;color:var(--ink-light);line-height:1.6;">
-          Tipp: kis K<sub>m</sub> + nagy V<sub>max</sub> → gyors telítés. Emeld a zajt 30%+ fölé, hogy lásd az illesztési módszerek eltérését.
-        </div>
-      </div>
-
-    </aside>
+    <footer>
+      <span>Fejlesztette: <strong style="color:var(--text-2)">NBalazs67</strong> — <a href="https://github.com/NBalazs67/enzimkinematika" target="_blank" rel="noopener">github.com/NBalazs67/enzimkinematika</a></span>
+      <span>Michaelis &amp; Menten, 1913 · Hill, 1910</span>
+    </footer>
   </div>
 
-  <footer>
-    <span>Fejlesztette: <strong>NBalazs67</strong> — <a href="https://github.com/NBalazs67/enzimkinematika" target="_blank" rel="noopener">Forrás (GitHub)</a></span>
-    <span>Michaelis & Menten, 1913 · Hill, 1910</span>
-  </footer>
-</div>
-
 <script>
-// ─────────────────────────────────────────────
-// CORE MATH
-// ─────────────────────────────────────────────
-function mmVelocity(Vmax, Km, S) {
-  return (Vmax * S) / (Km + S);
+function mmVelocity(V,K,S){return(V*S)/(K+S)}
+function hillVelocity(V,K,n,S){const Sn=Math.pow(S,n),Kn=Math.pow(K,n);return(V*Sn)/(Kn+Sn)}
+function mmInhibited(V,K,S,t,r){
+  if(t==='competitive')return(V*S)/(K*(1+r)+S);
+  if(t==='noncompetitive')return(V*S)/((K+S)*(1+r));
+  return(V*S)/(K+S*(1+r));
 }
-function hillVelocity(Vmax, Km, n, S) {
-  const Sn = Math.pow(S, n), Kmn = Math.pow(Km, n);
-  return (Vmax * Sn) / (Kmn + Sn);
-}
-function mmInhibited(Vmax, Km, S, inhibType, ratio) {
-  if (inhibType === 'competitive') {
-    return (Vmax * S) / (Km * (1 + ratio) + S);
-  } else if (inhibType === 'noncompetitive') {
-    return (Vmax * S) / ((Km + S) * (1 + ratio));
-  } else { // uncompetitive
-    return (Vmax * S) / (Km + S * (1 + ratio));
-  }
-}
+function rng(){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function calcR2(pts,V,K){if(!pts?.length)return null;const m=pts.reduce((a,p)=>a+p.y,0)/pts.length;let ss=0,sr=0;for(const p of pts){ss+=(p.y-m)**2;sr+=(p.y-mmVelocity(V,K,p.x))**2}return ss<1e-12?1:1-sr/ss}
+function calcRMSE(pts,V,K){if(!pts?.length)return null;return Math.sqrt(pts.reduce((s,p)=>s+(p.y-mmVelocity(V,K,p.x))**2,0)/pts.length)}
 
-function randomNormal() {
-  let u = 0, v = 0;
-  while (u === 0) u = Math.random();
-  while (v === 0) v = Math.random();
-  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+function fitNLS(points,maxIter=1200){
+  const pts=points.filter(p=>p.x>0&&p.y>0);if(pts.length<3)return null;
+  let r=fitLineweaverBurk(pts)||{},V=r.Vmax_est,K=r.Km_est;
+  if(!V||!K||!isFinite(V)||!isFinite(K)||V<=0||K<=0){V=Math.max(...pts.map(p=>p.y))*1.5;K=pts[Math.floor(pts.length/2)].x}
+  V=Math.max(V,0.01);K=Math.max(K,0.01);
+  const a=1e-4;
+  for(let i=0;i<maxIter;i++){let gV=0,gK=0;for(const p of pts){const pred=(V*p.x)/(K+p.x),e=pred-p.y;gV+=e*(p.x/(K+p.x));gK+=e*(-(V*p.x)/(K+p.x)**2)}const nV=V-a*gV,nK=K-a*gK;if(nV>0&&nK>0){V=nV;K=nK}if(Math.abs(gV)<1e-10&&Math.abs(gK)<1e-10)break}
+  return{Vmax_est:V,Km_est:K}
 }
-
-function calcR2(pts, Vmax, Km) {
-  if (!pts || pts.length === 0) return null;
-  const mean = pts.reduce((a, p) => a + p.y, 0) / pts.length;
-  let ssTot = 0, ssRes = 0;
-  for (const p of pts) {
-    const pred = mmVelocity(Vmax, Km, p.x);
-    ssTot += (p.y - mean) ** 2;
-    ssRes += (p.y - pred) ** 2;
-  }
-  return ssTot < 1e-12 ? 1 : 1 - ssRes / ssTot;
+function fitLineweaverBurk(pts){
+  const xs=[],ys=[];for(const p of pts){if(p.x>0&&p.y>0){xs.push(1/p.x);ys.push(1/p.y)}}
+  const n=xs.length;if(n<2)return null;
+  const mX=xs.reduce((a,b)=>a+b,0)/n,mY=ys.reduce((a,b)=>a+b,0)/n;
+  let num=0,den=0;for(let i=0;i<n;i++){num+=(xs[i]-mX)*(ys[i]-mY);den+=(xs[i]-mX)**2}
+  if(Math.abs(den)<1e-12)return null;const sl=num/den,ic=mY-sl*mX;
+  if(Math.abs(ic)<1e-12)return null;const Ve=1/ic,Ke=sl*Ve;
+  if(!isFinite(Ve)||!isFinite(Ke)||Ve<=0)return null;return{Vmax_est:Ve,Km_est:Ke}
 }
-
-function calcRMSE(pts, Vmax, Km) {
-  if (!pts || pts.length === 0) return null;
-  let sum = 0;
-  for (const p of pts) {
-    sum += (p.y - mmVelocity(Vmax, Km, p.x)) ** 2;
-  }
-  return Math.sqrt(sum / pts.length);
+function fitEadieHofstee(pts){
+  const xs=[],ys=[];for(const p of pts){if(p.x>0&&p.y>0){xs.push(p.y/p.x);ys.push(p.y)}}
+  const n=xs.length;if(n<2)return null;
+  const mX=xs.reduce((a,b)=>a+b,0)/n,mY=ys.reduce((a,b)=>a+b,0)/n;
+  let num=0,den=0;for(let i=0;i<n;i++){num+=(xs[i]-mX)*(ys[i]-mY);den+=(xs[i]-mX)**2}
+  if(Math.abs(den)<1e-12)return null;const sl=num/den,ic=mY-sl*mX;
+  if(!isFinite(ic)||ic<=0||(-sl)<=0)return null;return{Vmax_est:ic,Km_est:-sl}
 }
 
-// ─────────────────────────────────────────────
-// FITTING ALGORITHMS
-// ─────────────────────────────────────────────
-
-// Non-linear least squares via Gauss-Newton / gradient descent
-function fitNLS(points, maxIter = 1000) {
-  const pts = points.filter(p => p.x > 0 && p.y > 0);
-  if (pts.length < 3) return null;
-
-  // Initial guess from Lineweaver–Burk
-  let { Vmax_est: V, Km_est: K } = fitLineweaverBurk(pts) || {};
-  if (!V || !K || !isFinite(V) || !isFinite(K) || V <= 0 || K <= 0) {
-    V = Math.max(...pts.map(p => p.y)) * 1.5;
-    K = pts[Math.floor(pts.length / 2)].x;
-  }
-  // Clamp
-  V = Math.max(V, 0.01); K = Math.max(K, 0.01);
-
-  const alpha = 1e-4; // learning rate
-  for (let iter = 0; iter < maxIter; iter++) {
-    let gV = 0, gK = 0;
-    for (const p of pts) {
-      const pred = (V * p.x) / (K + p.x);
-      const err  = pred - p.y;
-      const dV   = p.x / (K + p.x);
-      const dK   = -(V * p.x) / ((K + p.x) ** 2);
-      gV += err * dV;
-      gK += err * dK;
-    }
-    const newV = V - alpha * gV;
-    const newK = K - alpha * gK;
-    if (newV > 0 && newK > 0) { V = newV; K = newK; }
-    if (Math.abs(gV) < 1e-9 && Math.abs(gK) < 1e-9) break;
-  }
-  return { Vmax_est: V, Km_est: K };
+function genData(V,K,Smax,n,noise,mode,hn,it,ir){
+  const pts=[];
+  for(let i=0;i<n;i++){const t=i/Math.max(1,n-1);const s=Math.pow(10,Math.log10(0.5)+t*(Math.log10(Smax)-Math.log10(0.5)));let v=mode==='hill'?hillVelocity(V,K,hn,s):mode==='inhibition'?mmInhibited(V,K,s,it,ir):mmVelocity(V,K,s);if(noise>0)v+=rng()*(noise/100)*v;pts.push({x:s,y:Math.max(0,v)})}
+  return pts;
+}
+function buildCurve(V,K,Smax,n,mode,hn,it,ir){
+  const c=[];
+  for(let i=0;i<n;i++){const t=i/(n-1);const s=Math.pow(10,Math.log10(0.5)+t*(Math.log10(Smax)-Math.log10(0.5)));let v=mode==='hill'?hillVelocity(V,K,hn,s):mode==='inhibition'?mmInhibited(V,K,s,it,ir):mmVelocity(V,K,s);c.push({x:s,y:v})}
+  return c;
 }
 
-function fitLineweaverBurk(points) {
-  const xs = [], ys = [];
-  for (const p of points) {
-    if (p.x <= 0 || p.y <= 0) continue;
-    xs.push(1 / p.x);
-    ys.push(1 / p.y);
-  }
-  const n = xs.length;
-  if (n < 2) return null;
-  const mX = xs.reduce((a, b) => a + b, 0) / n;
-  const mY = ys.reduce((a, b) => a + b, 0) / n;
-  let num = 0, den = 0;
-  for (let i = 0; i < n; i++) { num += (xs[i] - mX) * (ys[i] - mY); den += (xs[i] - mX) ** 2; }
-  if (Math.abs(den) < 1e-12) return null;
-  const slope = num / den;
-  const intercept = mY - slope * mX;
-  if (Math.abs(intercept) < 1e-12) return null;
-  const Vmax_est = 1 / intercept;
-  const Km_est   = slope * Vmax_est;
-  if (!isFinite(Vmax_est) || !isFinite(Km_est) || Vmax_est <= 0) return null;
-  return { Vmax_est, Km_est, slope, intercept };
-}
+let showPoints=false,fitted=false,currentMode='mm',fitMethod='nls',lastPoints=[];
+const E=id=>document.getElementById(id);
+let chart=null;
+const ctx=E('kineticsChart').getContext('2d');
 
-function fitEadieHofstee(points) {
-  // v = Vmax - Km*(v/[S])  →  y=v, x=v/[S], slope=-Km, intercept=Vmax
-  const xs = [], ys = [];
-  for (const p of points) {
-    if (p.x <= 0 || p.y <= 0) continue;
-    xs.push(p.y / p.x);
-    ys.push(p.y);
-  }
-  const n = xs.length;
-  if (n < 2) return null;
-  const mX = xs.reduce((a, b) => a + b, 0) / n;
-  const mY = ys.reduce((a, b) => a + b, 0) / n;
-  let num = 0, den = 0;
-  for (let i = 0; i < n; i++) { num += (xs[i] - mX) * (ys[i] - mY); den += (xs[i] - mX) ** 2; }
-  if (Math.abs(den) < 1e-12) return null;
-  const slope = num / den;
-  const intercept = mY - slope * mX;
-  const Vmax_est = intercept;
-  const Km_est   = -slope;
-  if (!isFinite(Vmax_est) || !isFinite(Km_est) || Vmax_est <= 0 || Km_est <= 0) return null;
-  return { Vmax_est, Km_est };
-}
+function updateRangeFill(el){const mn=parseFloat(el.min),mx=parseFloat(el.max),v=parseFloat(el.value);el.style.backgroundSize=((v-mn)/(mx-mn)*100)+'% 100%'}
+document.querySelectorAll('input[type=range]').forEach(el=>{updateRangeFill(el);el.addEventListener('input',()=>updateRangeFill(el))});
 
-// ─────────────────────────────────────────────
-// DATA GENERATION
-// ─────────────────────────────────────────────
-function generateData(Vmax, Km, Smax, nPoints, noisePercent, mode, hillN, inhibType, inhibRatio) {
-  const s = [];
-  for (let i = 0; i < nPoints; i++) {
-    const t = i / Math.max(1, nPoints - 1);
-    s.push(Math.pow(10, Math.log10(0.5) + t * (Math.log10(Smax) - Math.log10(0.5))));
-  }
-  const points = [];
-  for (const si of s) {
-    let v;
-    if (mode === 'hill')      v = hillVelocity(Vmax, Km, hillN, si);
-    else if (mode === 'inhibition') v = mmInhibited(Vmax, Km, si, inhibType, inhibRatio);
-    else                      v = mmVelocity(Vmax, Km, si);
+function drawChart(){
+  const Vmax=parseFloat(E('vmax').value),Km=parseFloat(E('km').value),Smax=parseFloat(E('smax').value);
+  const nPts=parseInt(E('points').value,10),noise=parseFloat(E('noise').value);
+  const hn=parseFloat(E('hillN').value),it=E('inhibType').value,ir=parseFloat(E('inhibRatio').value);
 
-    let noisy = v;
-    if (noisePercent > 0) {
-      const sigma = (noisePercent / 100) * v;
-      noisy = v + randomNormal() * sigma;
-    }
-    points.push({ x: si, y: Math.max(0, noisy) });
-  }
-  return points;
-}
+  E('vmaxValue').textContent=Vmax;E('kmValue').textContent=Km;E('smaxValue').textContent=Smax;
+  E('pointsValue').textContent=nPts;E('noiseValue').textContent=noise;
+  E('hillNVal').textContent=hn;E('inhibRatioVal').textContent=ir.toFixed(1);
+  E('displayVmax').textContent=Vmax;E('displayKm').textContent=Km;
 
-function buildModelCurve(Vmax, Km, Smax, nSamples, mode, hillN, inhibType, inhibRatio) {
-  const curve = [];
-  for (let i = 0; i < nSamples; i++) {
-    const t = i / (nSamples - 1);
-    const sVal = Math.pow(10, Math.log10(0.5) + t * (Math.log10(Smax) - Math.log10(0.5)));
-    let v;
-    if (mode === 'hill') v = hillVelocity(Vmax, Km, hillN, sVal);
-    else if (mode === 'inhibition') v = mmInhibited(Vmax, Km, sVal, inhibType, inhibRatio);
-    else v = mmVelocity(Vmax, Km, sVal);
-    curve.push({ x: sVal, y: v });
-  }
-  return curve;
-}
+  const N=300;
+  const model=buildCurve(Vmax,Km,Smax,N,currentMode,hn,it,ir);
+  const maxY=Math.max(...model.map(d=>d.y));
+  lastPoints=genData(Vmax,Km,Smax,nPts,noise,currentMode,hn,it,ir);
 
-// ─────────────────────────────────────────────
-// STATE
-// ─────────────────────────────────────────────
-let showPoints   = false;
-let fitted       = false;
-let currentMode  = 'mm';
-let fitMethod    = 'nls';
-let lastPoints   = [];
+  const ds=[];
+  ds.push({label:'Elméleti görbe',data:model,showLine:true,borderColor:'#00e5a0',borderWidth:2.5,pointRadius:0,order:1,tension:0.2,backgroundColor:'transparent'});
 
-const E = id => document.getElementById(id);
+  if(showPoints){ds.push({label:'Kísérleti adatpontok',data:lastPoints,showLine:false,backgroundColor:'rgba(56,217,245,0.8)',borderColor:'#38d9f5',pointRadius:5,pointHoverRadius:7,order:2})}
 
-const vmaxEl   = E('vmax');
-const kmEl     = E('km');
-const smaxEl   = E('smax');
-const pointsEl = E('points');
-const noiseEl  = E('noise');
-const hillNEl  = E('hillN');
-const inhibTypeEl  = E('inhibType');
-const inhibRatioEl = E('inhibRatio');
+  E('fittedVmax').textContent='—';E('fittedKm').textContent='—';E('statR2').textContent='—';E('statRMSE').textContent='—';
+  E('statR2').className='stat-val';E('statRMSE').className='stat-val';
 
-const ctx = E('kineticsChart').getContext('2d');
-let chart = null;
-
-// ─────────────────────────────────────────────
-// CHART
-// ─────────────────────────────────────────────
-function drawChart() {
-  const Vmax     = parseFloat(vmaxEl.value);
-  const Km       = parseFloat(kmEl.value);
-  const Smax     = parseFloat(smaxEl.value);
-  const nPts     = parseInt(pointsEl.value, 10);
-  const noisePct = parseFloat(noiseEl.value);
-  const hillN    = parseFloat(hillNEl.value);
-  const inhibType  = inhibTypeEl.value;
-  const inhibRatio = parseFloat(inhibRatioEl.value);
-
-  // Update labels
-  E('vmaxValue').textContent  = Vmax;
-  E('kmValue').textContent    = Km;
-  E('smaxValue').textContent  = Smax;
-  E('pointsValue').textContent = nPts;
-  E('noiseValue').textContent = noisePct;
-  E('hillNVal').textContent   = hillN;
-  E('inhibRatioVal').textContent = inhibRatio.toFixed(1);
-  E('displayVmax').textContent = Vmax;
-  E('displayKm').textContent  = Km;
-
-  const nSamples = 300;
-  const modelCurve = buildModelCurve(Vmax, Km, Smax, nSamples, currentMode, hillN, inhibType, inhibRatio);
-  const maxY = Math.max(...modelCurve.map(d => d.y));
-
-  lastPoints = generateData(Vmax, Km, Smax, nPts, noisePct, currentMode, hillN, inhibType, inhibRatio);
-
-  const datasets = [];
-
-  // 1) Model curve (true)
-  datasets.push({
-    label: 'Elméleti görbe',
-    data: modelCurve,
-    showLine: true,
-    borderColor: '#1a5c3a',
-    borderWidth: 2.5,
-    pointRadius: 0,
-    order: 1,
-    tension: 0.2
-  });
-
-  // 2) Experimental points
-  if (showPoints) {
-    datasets.push({
-      label: 'Kísérleti adatpontok',
-      data: lastPoints,
-      showLine: false,
-      backgroundColor: 'rgba(30,58,110,0.75)',
-      borderColor: 'rgba(30,58,110,0.9)',
-      pointRadius: 5,
-      pointHoverRadius: 7,
-      order: 2
-    });
-  }
-
-  // 3) Fitted curve
-  E('fittedVmax').textContent = '—';
-  E('fittedKm').textContent   = '—';
-  E('statR2').textContent     = '—';
-  E('statRMSE').textContent   = '—';
-  E('statR2').className = 'stat-val';
-  E('statRMSE').className = 'stat-val';
-
-  if (fitted && showPoints) {
-    let fit = null;
-    if (fitMethod === 'nls')     fit = fitNLS(lastPoints);
-    else if (fitMethod === 'lb') fit = fitLineweaverBurk(lastPoints);
-    else                         fit = fitEadieHofstee(lastPoints);
-
-    if (fit && fit.Vmax_est > 0 && fit.Km_est > 0) {
-      const Vf = fit.Vmax_est, Kf = fit.Km_est;
-      const fitCurve = buildModelCurve(Vf, Kf, Smax, nSamples, 'mm', 1, 'competitive', 0);
-      datasets.push({
-        label: 'Illesztett görbe',
-        data: fitCurve,
-        showLine: true,
-        borderColor: 'rgba(139,44,18,0.9)',
-        borderDash: [7, 4],
-        borderWidth: 2,
-        pointRadius: 0,
-        tension: 0.2,
-        order: 3
-      });
-      E('fittedVmax').textContent = Vf.toFixed(3);
-      E('fittedKm').textContent   = Kf.toFixed(3);
-
-      const r2   = calcR2(lastPoints, Vf, Kf);
-      const rmse = calcRMSE(lastPoints, Vf, Kf);
-      if (r2 !== null) {
-        E('statR2').textContent = r2.toFixed(4);
-        E('statR2').className   = 'stat-val ' + (r2 > 0.99 ? 'good' : r2 > 0.95 ? 'info' : 'warn');
-      }
-      if (rmse !== null) {
-        E('statRMSE').textContent = rmse.toFixed(3);
-        E('statRMSE').className   = 'stat-val info';
+  if(fitted){
+    if(!showPoints){E('fittedVmax').textContent='Pontok kellenek'}
+    else{
+      const fit=fitMethod==='nls'?fitNLS(lastPoints):fitMethod==='lb'?fitLineweaverBurk(lastPoints):fitEadieHofstee(lastPoints);
+      if(fit&&fit.Vmax_est>0&&fit.Km_est>0){
+        const Vf=fit.Vmax_est,Kf=fit.Km_est;
+        ds.push({label:'Illesztett görbe',data:buildCurve(Vf,Kf,Smax,N,'mm',1,'competitive',0),showLine:true,borderColor:'#ff6b8a',borderDash:[7,4],borderWidth:2,pointRadius:0,tension:0.2,order:3,backgroundColor:'transparent'});
+        E('fittedVmax').textContent=Vf.toFixed(3);E('fittedKm').textContent=Kf.toFixed(3);
+        const r2=calcR2(lastPoints,Vf,Kf),rmse=calcRMSE(lastPoints,Vf,Kf);
+        if(r2!==null){E('statR2').textContent=r2.toFixed(4);E('statR2').className='stat-val '+(r2>0.99?'good':r2>0.95?'info':'warn')}
+        if(rmse!==null){E('statRMSE').textContent=rmse.toFixed(3);E('statRMSE').className='stat-val info'}
       }
     }
-  } else if (fitted && !showPoints) {
-    // Remind user
-    E('fittedVmax').textContent = 'Kapcsold be a pontokat!';
   }
 
-  // 4) Km annotation line (vertical)
-  datasets.push({
-    label: 'Km marker',
-    data: [{ x: Km, y: 0 }, { x: Km, y: maxY * 0.52 }],
-    showLine: true,
-    pointRadius: 0,
-    borderColor: 'rgba(176,125,46,0.7)',
-    borderDash: [4, 3],
-    borderWidth: 1.5,
-    order: 5
-  });
+  ds.push({label:'Km marker',data:[{x:Km,y:0},{x:Km,y:maxY*0.52}],showLine:true,pointRadius:0,borderColor:'rgba(245,166,35,0.55)',borderDash:[4,3],borderWidth:1.5,order:5,backgroundColor:'transparent'});
+  ds.push({label:'Vmax/2 marker',data:[{x:0.5,y:Vmax/2},{x:Km,y:Vmax/2}],showLine:true,pointRadius:0,borderColor:'rgba(245,166,35,0.55)',borderDash:[4,3],borderWidth:1.5,order:5,backgroundColor:'transparent'});
 
-  // 5) Vmax/2 horizontal line
-  datasets.push({
-    label: 'Vmax/2 marker',
-    data: [{ x: 0.5, y: Vmax / 2 }, { x: Km, y: Vmax / 2 }],
-    showLine: true,
-    pointRadius: 0,
-    borderColor: 'rgba(176,125,46,0.7)',
-    borderDash: [4, 3],
-    borderWidth: 1.5,
-    order: 5
-  });
-
-  // Destroy and recreate (Chart.js v4 update() doesn't always work cleanly for dataset type changes)
-  if (chart) { chart.destroy(); chart = null; }
-
-  chart = new Chart(ctx, {
-    type: 'scatter',
-    data: { datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 120 },
-      plugins: {
-        legend: {
-          position: 'top',
-          labels: {
-            font: { family: 'DM Sans', size: 11 },
-            boxWidth: 14, padding: 12,
-            filter: item => !item.text.includes('marker')
-          }
-        },
-        tooltip: {
-          backgroundColor: '#12110f',
-          titleFont: { family: 'JetBrains Mono', size: 11 },
-          bodyFont: { family: 'JetBrains Mono', size: 11 },
-          padding: 10,
-          callbacks: {
-            label(context) {
-              const p = context.parsed;
-              return `[S] = ${Number(p.x).toFixed(3)}   v = ${Number(p.y).toFixed(3)}`;
-            }
-          }
-        }
+  if(chart){chart.destroy();chart=null}
+  chart=new Chart(ctx,{
+    type:'scatter',data:{datasets:ds},
+    options:{
+      responsive:true,maintainAspectRatio:false,animation:{duration:150},
+      plugins:{
+        legend:{position:'top',labels:{font:{family:'Syne',size:11,weight:'600'},color:'#9ba3c4',boxWidth:14,padding:14,filter:item=>!item.text.includes('marker')}},
+        tooltip:{backgroundColor:'rgba(6,8,16,0.95)',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleFont:{family:'JetBrains Mono',size:11},bodyFont:{family:'JetBrains Mono',size:11},titleColor:'#38d9f5',bodyColor:'#e8eaf2',padding:12,callbacks:{label:c=>`[S] = ${c.parsed.x.toFixed(3)}   v = ${c.parsed.y.toFixed(3)}`}}
       },
-      scales: {
-        x: {
-          type: 'logarithmic',
-          title: { display: true, text: 'Szubsztrátkoncentráció [S]', font: { family: 'Source Serif 4', size: 12, style: 'italic' }, color: '#3a3530' },
-          min: 0.5,
-          max: Smax,
-          grid: { color: 'rgba(180,165,140,0.2)' },
-          ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: '#7a7268' }
-        },
-        y: {
-          title: { display: true, text: 'Reakciósebesség v', font: { family: 'Source Serif 4', size: 12, style: 'italic' }, color: '#3a3530' },
-          beginAtZero: true,
-          grid: { color: 'rgba(180,165,140,0.2)' },
-          ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: '#7a7268' }
-        }
+      scales:{
+        x:{type:'logarithmic',title:{display:true,text:'Szubsztrátkoncentráció [S]',font:{family:'Lora',size:12,style:'italic'},color:'#5a6285'},min:0.5,max:Smax,grid:{color:'rgba(255,255,255,0.04)'},ticks:{font:{family:'JetBrains Mono',size:10},color:'#5a6285'}},
+        y:{title:{display:true,text:'Reakciósebesség v',font:{family:'Lora',size:12,style:'italic'},color:'#5a6285'},beginAtZero:true,grid:{color:'rgba(255,255,255,0.04)'},ticks:{font:{family:'JetBrains Mono',size:10},color:'#5a6285'}}
       }
     }
   });
 }
 
-// ─────────────────────────────────────────────
-// UI EVENTS
-// ─────────────────────────────────────────────
+['vmax','km','smax','points','noise','hillN','inhibRatio'].forEach(id=>E(id).addEventListener('input',drawChart));
+E('inhibType').addEventListener('change',drawChart);
 
-// Range inputs
-[vmaxEl, kmEl, smaxEl, pointsEl, noiseEl, hillNEl, inhibRatioEl].forEach(el => {
-  el.addEventListener('input', drawChart);
-});
-inhibTypeEl.addEventListener('change', drawChart);
-
-// Mode tabs
-document.querySelectorAll('.tab').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentMode = btn.dataset.mode;
-
-    E('hillControls').style.display   = currentMode === 'hill'      ? 'block' : 'none';
-    E('inhibControls').style.display  = currentMode === 'inhibition'? 'block' : 'none';
-    E('kineticMode').textContent = {
-      mm: 'Mód: Michaelis–Menten',
-      hill: 'Mód: Hill (kooperatív)',
-      inhibition: 'Mód: Inhibíció'
-    }[currentMode];
-
-    // Update equation box and annotation
-    updateAnnotation();
-    drawChart();
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+    currentMode=btn.dataset.mode;
+    E('hillControls').style.display=currentMode==='hill'?'block':'none';
+    E('inhibControls').style.display=currentMode==='inhibition'?'flex':'none';
+    E('kineticMode').textContent={mm:'Mód: Michaelis–Menten',hill:'Mód: Hill (kooperatív)',inhibition:'Mód: Inhibíció'}[currentMode];
+    updateAnnotation();drawChart();
   });
 });
 
-// Fit method buttons
-document.querySelectorAll('.method-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    fitMethod = btn.dataset.fit;
-
-    const hints = {
-      nls: '<strong>Nemlineáris legkisebb négyzetek (NLS):</strong> Direkt illesztés az eredeti MM-egyenletbe. Torzítatlan becslés – ez az ajánlott módszer.',
-      lb:  '<strong>Lineweaver–Burk (1/v vs 1/[S]):</strong> Linearizáció kettős reciprok transzformációval. Hagyományos módszer, de torzított zajjal!',
-      eh:  '<strong>Eadie–Hofstee (v vs v/[S]):</strong> Linearizáció. Jobb mint L–B, de még mindig torzít. Látványos outlier-érzékenység.'
-    };
-    E('fitMethodHint').innerHTML = hints[fitMethod];
-    E('lbWarning').style.display = fitMethod === 'lb' ? 'block' : 'none';
-    drawChart();
+document.querySelectorAll('.method-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.method-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+    fitMethod=btn.dataset.fit;
+    const h={nls:'<strong>Nemlineáris LS (NLS):</strong> Direkt illesztés az MM-egyenletbe. Torzítatlan — ajánlott módszer.',lb:'<strong>Lineweaver–Burk (1/v vs 1/[S]):</strong> Linearizáció kettős reciprok transzformációval. Hagyományos, de torzított.',eh:'<strong>Eadie–Hofstee (v vs v/[S]):</strong> Linearizáció — jobb mint L–B, de outlier-érzékeny.'};
+    E('fitMethodHint').innerHTML=h[fitMethod];E('lbWarning').style.display=fitMethod==='lb'?'block':'none';drawChart();
   });
 });
 
-// Toggle points
-E('togglePoints').addEventListener('click', () => {
-  showPoints = !showPoints;
-  const btn = E('togglePoints');
-  btn.textContent = showPoints ? '⬤ Kísérleti pontok: BE' : '⬤ Kísérleti pontok: KI';
-  btn.className = showPoints ? 'btn btn-active' : 'btn btn-outline';
-  drawChart();
+E('togglePoints').addEventListener('click',()=>{showPoints=!showPoints;E('togglePoints').textContent=showPoints?'⬤ Pontok: BE':'⬤ Pontok: KI';E('togglePoints').className=showPoints?'btn btn-active':'btn btn-outline';drawChart()});
+E('fitButton').addEventListener('click',()=>{fitted=!fitted;E('fitButton').textContent=fitted?'⌖ Illesztés: BE':'⌖ Illesztés: KI';E('fitButton').className=fitted?'btn btn-active-red':'btn btn-outline';drawChart()});
+E('downloadBtn').addEventListener('click',()=>{if(!chart)return;const a=document.createElement('a');a.href=chart.toBase64Image();a.download='enzimkinetika.png';a.click()});
+E('csvBtn').addEventListener('click',()=>{if(!lastPoints.length)return;const l=['[S],v_mért',...lastPoints.map(p=>`${p.x.toFixed(6)},${p.y.toFixed(6)}`)];const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([l.join('\n')],{type:'text/csv'}));a.download='enzimkinetika_adatok.csv';a.click()});
+E('resetBtn').addEventListener('click',()=>{
+  E('vmax').value=50;E('km').value=10;E('smax').value=100;E('points').value=12;E('noise').value=5;E('hillN').value=2;E('inhibRatio').value=1;
+  document.querySelectorAll('input[type=range]').forEach(updateRangeFill);
+  showPoints=false;fitted=false;currentMode='mm';fitMethod='nls';
+  E('togglePoints').textContent='⬤ Pontok: KI';E('togglePoints').className='btn btn-outline';
+  E('fitButton').textContent='⌖ Illesztés: KI';E('fitButton').className='btn btn-outline';
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',i===0));
+  document.querySelectorAll('.method-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  E('hillControls').style.display='none';E('inhibControls').style.display='none';E('lbWarning').style.display='none';
+  E('kineticMode').textContent='Mód: Michaelis–Menten';updateAnnotation();drawChart();
 });
 
-// Toggle fit
-E('fitButton').addEventListener('click', () => {
-  fitted = !fitted;
-  const btn = E('fitButton');
-  btn.textContent = fitted ? '⌖ Illesztés: BE' : '⌖ Illesztés: KI';
-  btn.className = fitted ? 'btn btn-active-red' : 'btn btn-outline';
-  drawChart();
-});
-
-// PNG download
-E('downloadBtn').addEventListener('click', () => {
-  if (!chart) return;
-  const a = document.createElement('a');
-  a.href = chart.toBase64Image();
-  a.download = 'enzimkinetika.png';
-  a.click();
-});
-
-// CSV export
-E('csvBtn').addEventListener('click', () => {
-  if (!lastPoints.length) return;
-  const lines = ['[S],v_mért'];
-  for (const p of lastPoints) lines.push(`${p.x.toFixed(6)},${p.y.toFixed(6)}`);
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'enzimkinetika_adatok.csv';
-  a.click();
-});
-
-// Reset
-E('resetBtn').addEventListener('click', () => {
-  vmaxEl.value = 50; kmEl.value = 10; smaxEl.value = 100;
-  pointsEl.value = 12; noiseEl.value = 5; hillNEl.value = 2; inhibRatioEl.value = 1;
-  showPoints = false; fitted = false; currentMode = 'mm'; fitMethod = 'nls';
-  E('togglePoints').textContent = '⬤ Kísérleti pontok: KI';
-  E('togglePoints').className   = 'btn btn-outline';
-  E('fitButton').textContent    = '⌖ Illesztés: KI';
-  E('fitButton').className      = 'btn btn-outline';
-  document.querySelectorAll('.tab').forEach((b, i) => b.classList.toggle('active', i === 0));
-  document.querySelectorAll('.method-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
-  E('hillControls').style.display  = 'none';
-  E('inhibControls').style.display = 'none';
-  E('lbWarning').style.display     = 'none';
-  E('kineticMode').textContent = 'Mód: Michaelis–Menten';
-  updateAnnotation();
-  drawChart();
-});
-
-// ─────────────────────────────────────────────
-// ANNOTATION UPDATER
-// ─────────────────────────────────────────────
-function updateAnnotation() {
-  const texts = {
-    mm: `<h4>Michaelis–Menten kinetika</h4>
-      <p>A Michaelis–Menten modell az enzimkatalizált reakciók sebességét írja le a szubsztrátkoncentráció függvényében. A hiperbolikus görbe két alapparaméterrel jellemezhető.</p>
-      <table>
-        <tr><th>Paraméter</th><th>Jelentés</th><th>Egység</th></tr>
-        <tr><td><span class="highlight">Vmax</span></td><td>Maximális sebesség (telítés esetén)</td><td>µmol/min</td></tr>
-        <tr><td><span class="highlight">Km</span></td><td>Szubsztrátkonc., ahol v = Vmax/2</td><td>mM / µM</td></tr>
-        <tr><td><span class="highlight">kcat</span></td><td>Katalitikus fordulatok száma</td><td>s⁻¹</td></tr>
-        <tr><td><span class="highlight">kcat/Km</span></td><td>Katalitikus hatékonyság</td><td>M⁻¹s⁻¹</td></tr>
-      </table>
-      <p style="margin-top:8px">A <span class="highlight">Km</span> az enzim szubsztrát-affinitásának mértéke – kis Km = nagy affinitás.</p>`,
-
-    hill: `<h4>Hill-kinetika (kooperatív enzimek)</h4>
-      <p>A Hill-egyenlet sigmoidos görbét ír le, ahol <em>n</em> a kooperativitási koefficiens.</p>
-      <table>
-        <tr><th>n értéke</th><th>Értelmezés</th><th>Példa</th></tr>
-        <tr><td><span class="highlight">n = 1</span></td><td>Hiperbolikus (MM)</td><td>Mioglobin</td></tr>
-        <tr><td><span class="highlight">n &gt; 1</span></td><td>Pozitív kooperativitás</td><td>Hemoglobin (n≈2.7)</td></tr>
-        <tr><td><span class="highlight">n &lt; 1</span></td><td>Negatív kooperativitás</td><td>Egyes kinázok</td></tr>
-      </table>
-      <p style="margin-top:8px">v = Vmax·[S]ⁿ / (K₀.₅ⁿ + [S]ⁿ) — K₀.₅ a féltelítési koncentráció.</p>`,
-
-    inhibition: `<h4>Enzimgátlás típusai</h4>
-      <p>Az inhibítorok különbözőképpen változtatják meg a kinetikai paramétereket:</p>
-      <table>
-        <tr><th>Típus</th><th>Km változás</th><th>Vmax változás</th></tr>
-        <tr><td><span class="highlight">Kompetitív</span></td><td>↑ növekszik</td><td>változatlan</td></tr>
-        <tr><td><span class="highlight">Nem-kompetitív</span></td><td>változatlan</td><td>↓ csökken</td></tr>
-        <tr><td><span class="highlight">Akompetiív</span></td><td>↓ csökken</td><td>↓ csökken</td></tr>
-      </table>
-      <p style="margin-top:8px">Az [I]/Ki arány növelésével megfigyelheted, hogyan tolódnak el a paraméterek a különböző gátlási típusoknál.</p>`
+function updateAnnotation(){
+  const t={
+    mm:`<h4>Michaelis–Menten kinetika</h4><p>A Michaelis–Menten modell az enzimkatalizált reakciók sebességét írja le a szubsztrátkoncentráció függvényében. A hiperbolikus görbe két alapparaméterrel jellemezhető.</p><table><tr><th>Paraméter</th><th>Jelentés</th><th>Egység</th></tr><tr><td><span class="mono-tag">Vmax</span></td><td>Maximális sebesség (telítés esetén)</td><td>µmol/min</td></tr><tr><td><span class="mono-tag">Km</span></td><td>Szubsztrátkonc., ahol v = Vmax/2</td><td>mM / µM</td></tr><tr><td><span class="mono-tag">kcat</span></td><td>Katalitikus fordulatok száma</td><td>s⁻¹</td></tr><tr><td><span class="mono-tag">kcat/Km</span></td><td>Katalitikus hatékonyság</td><td>M⁻¹s⁻¹</td></tr></table><p style="margin-top:10px">A <span class="mono-tag">Km</span> az enzim szubsztrát-affinitásának mértéke — kis Km = nagy affinitás. A sárga szaggatott vonalak jelölik a Km és Vmax/2 értékeket.</p>`,
+    hill:`<h4>Hill-kinetika — kooperatív enzimek</h4><p>A Hill-egyenlet sigmoidos görbét ír le, ahol <em>n</em> a kooperativitási koefficiens (Hill-szám).</p><table><tr><th>n értéke</th><th>Értelmezés</th><th>Példa</th></tr><tr><td><span class="mono-tag">n = 1</span></td><td>Hiperbolikus (klasszikus MM)</td><td>Mioglobin</td></tr><tr><td><span class="mono-tag">n &gt; 1</span></td><td>Pozitív kooperativitás</td><td>Hemoglobin (n≈2.7)</td></tr><tr><td><span class="mono-tag">n &lt; 1</span></td><td>Negatív kooperativitás</td><td>Egyes kinázok</td></tr></table><p style="margin-top:10px">v = Vmax·[S]ⁿ / (K₀.₅ⁿ + [S]ⁿ) — ahol K₀.₅ a féltelítési koncentráció.</p>`,
+    inhibition:`<h4>Enzimgátlás — inhibíciós típusok</h4><p>Az inhibítorok különbözőképpen módosítják a kinetikai paramétereket — emeld az [I]/Ki arányt és figyeld meg a görbe változását.</p><table><tr><th>Típus</th><th>Km változás</th><th>Vmax változás</th><th>Kötési hely</th></tr><tr><td><span class="mono-tag">Kompetitív</span></td><td>↑ növekszik</td><td>változatlan</td><td>Aktív hely</td></tr><tr><td><span class="mono-tag">Nem-kompetitív</span></td><td>változatlan</td><td>↓ csökken</td><td>Alloszterikus</td></tr><tr><td><span class="mono-tag">Akompetiív</span></td><td>↓ csökken</td><td>↓ csökken</td><td>ES komplex</td></tr></table>`
   };
-  E('annotationText').innerHTML = texts[currentMode] || texts.mm;
-
-  const eqs = {
-    mm:        'Michaelis–Menten:<br><span class="eq-line">v = (Vmax × [S]) / (Km + [S])</span>',
-    hill:      'Hill-egyenlet:<br><span class="eq-line">v = Vmax × [S]ⁿ / (K₀.₅ⁿ + [S]ⁿ)</span>',
-    inhibition:'Kompetitív:<br><span class="eq-line">v = Vmax·[S] / (Km·(1+[I]/Ki) + [S])</span>'
-  };
-  E('equationBox').innerHTML = eqs[currentMode] || eqs.mm;
+  E('annotationText').innerHTML=t[currentMode]||t.mm;
+  const eq={mm:'Michaelis–Menten:<br><span class="eq-line">v = (Vmax × [S]) / (Km + [S])</span>',hill:'Hill-egyenlet:<br><span class="eq-line">v = Vmax × [S]ⁿ / (K₀.₅ⁿ + [S]ⁿ)</span>',inhibition:'Kompetitív gátlás:<br><span class="eq-line">v = Vmax·[S] / (Km·(1+[I]/Ki) + [S])</span>'};
+  E('equationBox').innerHTML=eq[currentMode]||eq.mm;
 }
 
-// ─────────────────────────────────────────────
-// INIT
-// ─────────────────────────────────────────────
 updateAnnotation();
 drawChart();
 </script>
